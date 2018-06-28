@@ -182,6 +182,16 @@ app.delete("/users/me/token", authenticate, async (req, res) => {
   }
 });
 
+app.get("/users/me/token", authenticate, async (req, res) => {
+  try{
+    const token = await req.user.generateAuthToken();
+    res.header("x-auth", token).send(user);
+  }
+  catch(e){
+    res.status(400).send();
+  }
+});
+
 app.listen(port, () => {
   console.log(`Started up at port ${port}`);
 });

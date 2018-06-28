@@ -45,7 +45,14 @@ UserSchema.methods.toJSON = function(){
 UserSchema.methods.generateAuthToken = function() {
   var user = this;
   var access = "auth";
-  var token = jwt.sign({_id: user._id.toHexString(), access}, process.env.JWT_SECRET).toString();
+
+  user.removeExpiredTokens();
+
+  const options = {
+    expiresIn: "5m"
+  };
+
+  var token = jwt.sign({_id: user._id.toHexString(), access}, process.env.JWT_SECRET, options).toString();
 
   user.tokens = user.tokens.concat([{access, token}]);
 
@@ -64,6 +71,24 @@ UserSchema.methods.removeToken = function(token) {
   });
 };
 
+UserSchema.methods.removeExpiredTokens = function() {
+  var user = this;
+
+  user.tokens = user.tokens.filter((token) => {
+
+    tokenValue = token.token;
+
+    try{
+      jwt.verify(token, process.env.JWT_SECRET);
+    }
+    catch(e){
+      return false;
+    }
+
+    return true;
+  });
+}
+
 UserSchema.statics.findByToken = function (token) {
   var User = this;
   var decoded;
@@ -72,6 +97,8 @@ UserSchema.statics.findByToken = function (token) {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   }
   catch(e){
+    console.log("TOKEN UNABLE TO BE VERIFIED");
+    console.log(e);
     return Promise.reject();
   }
 
